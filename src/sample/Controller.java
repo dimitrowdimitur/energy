@@ -2,21 +2,25 @@ package sample;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.event.EventHandler;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TablePosition;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.ChoiceBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
-import javafx.scene.input.KeyCode;
+import javafx.util.Callback;
+import javafx.util.converter.IntegerStringConverter;
+import sample.enums.ClientType;
+import sample.model.Client;
 import sample.model.Employee;
+import sample.model.Property;
+import sample.utils.EditUtil;
 
 import java.net.URL;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -35,21 +39,162 @@ public class Controller implements Initializable {
     @FXML
     private TextField employeeSalary;
 
+    @FXML
+    private TableView<Property> propertyTable;
+    @FXML
+    private TableColumn<Property, String> address;
+    @FXML
+    private TableColumn<Property, Integer> maintenance;
+    @FXML
+    private TextField addressField;
+    @FXML
+    private TextField maintenanceField;
+
+
+    @FXML
+    private TableView<Client> clientTable;
+    @FXML
+    private TableColumn<Client, String> clientFullName;
+    @FXML
+    private TableColumn<Client, String> clientType;
+    @FXML
+    private TextField clientField;
+    @FXML
+    private ChoiceBox typeDropdown;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         loadData();
-        name.setCellFactory(TextFieldTableCell.<Employee>forTableColumn());
-        name.setOnEditCommit(
-                new EventHandler<TableColumn.CellEditEvent<Employee, String>>() {
-                    @Override
-                    public void handle(TableColumn.CellEditEvent<Employee, String> event) {
-                        ((Employee) event.getTableView().getItems().get(event.getTablePosition().getRow())).setFullName(event.getNewValue());
-                        String newName = event.getNewValue();
-                        int uniqueIdentifier = event.getRowValue().getId(); //Unique identfier is something that uniquely identify the row. It could be the name of the object that we are pricing here.
-                        updateName(newName, uniqueIdentifier); //Call DAO now
-                    }
+        loadPropertyData();
+        loadClientData();
+
+        name.setCellFactory(TextFieldTableCell.forTableColumn());
+        salary.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
+        salary.setOnEditCommit(
+                event -> {
+                    ((Employee) event.getTableView().getItems().get(event.getTablePosition().getRow())).setSalary(event.getNewValue());
+                    int newSalary = event.getNewValue();
+                    int uniqueIdentifier = event.getRowValue().getId();
+                    updateSalary(newSalary, uniqueIdentifier);
+                    employTable.setEditable(false);
+                    employTable.getSelectionModel().cellSelectionEnabledProperty().set(false);
                 }
         );
+        name.setOnEditCommit(
+                event -> {
+                    ((Employee) event.getTableView().getItems().get(event.getTablePosition().getRow())).setFullName(event.getNewValue());
+                    String newName = event.getNewValue();
+                    int uniqueIdentifier = event.getRowValue().getId();
+                    updateName(newName, uniqueIdentifier);
+                    employTable.setEditable(false);
+                    employTable.getSelectionModel().cellSelectionEnabledProperty().set(false);
+                }
+        );
+
+
+        address.setCellFactory(TextFieldTableCell.forTableColumn());
+        maintenance.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
+        maintenance.setOnEditCommit(
+                event -> {
+                    event.getTableView().getItems().get(event.getTablePosition().getRow()).setMaintenance(event.getNewValue());
+                    int newMaintenance = event.getNewValue();
+                    int uniqueIdentifier = event.getRowValue().getId();
+                    updateMaintenance(newMaintenance, uniqueIdentifier);
+                    propertyTable.setEditable(false);
+                    propertyTable.getSelectionModel().cellSelectionEnabledProperty().set(false);
+                }
+        );
+        address.setOnEditCommit(
+                event -> {
+                    event.getTableView().getItems().get(event.getTablePosition().getRow()).setAddress(event.getNewValue());
+                    String newAddress = event.getNewValue();
+                    int uniqueIdentifier = event.getRowValue().getId();
+                    updateAddress(newAddress, uniqueIdentifier);
+                    propertyTable.setEditable(false);
+                    propertyTable.getSelectionModel().cellSelectionEnabledProperty().set(false);
+                }
+        );
+
+        clientFullName.setCellFactory(TextFieldTableCell.forTableColumn());
+        clientType.setCellFactory(
+                new Callback<TableColumn<Client, String>, TableCell<Client, String>>() {
+                    @Override
+                    public TableCell<Client, String> call(TableColumn<Client, String> param) {
+                        ObservableList<String> testlist = FXCollections
+                                .observableArrayList(ClientType.FIRM.toString(), ClientType.PRIVATE.toString());
+                        return new ChoiceBoxTableCell(testlist);
+                    }
+                });
+        clientType.setOnEditCommit(
+                event -> {
+                    event.getTableView().getItems().get(event.getTablePosition().getRow()).setClientType(event.getNewValue());
+                    String newClientType = event.getNewValue();
+                    int uniqueIdentifier = event.getRowValue().getId();
+                    updateClientType(newClientType, uniqueIdentifier);
+                    clientTable.setEditable(false);
+                    clientTable.getSelectionModel().cellSelectionEnabledProperty().set(false);
+                }
+        );
+        clientFullName.setOnEditCommit(
+                event -> {
+                    event.getTableView().getItems().get(event.getTablePosition().getRow()).setClientFullName(event.getNewValue());
+                    String newClientFullName = event.getNewValue();
+                    int uniqueIdentifier = event.getRowValue().getId();
+                    updateClientFullName(newClientFullName, uniqueIdentifier);
+                    clientTable.setEditable(false);
+                    clientTable.getSelectionModel().cellSelectionEnabledProperty().set(false);
+                }
+        );
+
+        typeDropdown.setItems(FXCollections.observableArrayList(Arrays.asList(ClientType.values())));
+    }
+
+    private void updateClientFullName(String newClientFullName, int uniqueIdentifier) {
+        try {
+            Connection connection =  establishConnection();
+            PreparedStatement ps = connection.prepareStatement("UPDATE clients SET fullname = ? WHERE id = ?");
+            ps.setString(1,newClientFullName);
+            ps.setInt(2, uniqueIdentifier);
+            ps.executeUpdate();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
+    private void updateClientType(String newClientType, int uniqueIdentifier) {
+        try {
+            Connection connection =  establishConnection();
+            PreparedStatement ps = connection.prepareStatement("UPDATE clients SET type = ? WHERE id = ?");
+            ps.setString(1,newClientType);
+            ps.setInt(2, uniqueIdentifier);
+            ps.executeUpdate();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
+    private void updateMaintenance(int newMaintenance, int uniqueIdentifier) {
+        try {
+            Connection connection =  establishConnection();
+            PreparedStatement ps = connection.prepareStatement("UPDATE property SET maintenance = ? WHERE id = ?");
+            ps.setInt(1,newMaintenance);
+            ps.setInt(2, uniqueIdentifier);
+            ps.executeUpdate();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
+    private void updateAddress(String newAddress, int uniqueIdentifier) {
+        try {
+            Connection connection =  establishConnection();
+            PreparedStatement ps = connection.prepareStatement("UPDATE property SET address = ? WHERE id = ?");
+            ps.setString(1,newAddress);
+            ps.setInt(2, uniqueIdentifier);
+            ps.executeUpdate();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
     }
 
     @FXML
@@ -85,80 +230,18 @@ public class Controller implements Initializable {
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
-
-
     }
 
     @FXML
     public void onEditEmployee(){
-        employTable.setEditable(true);
-        // allows the individual cells to be selected
-        employTable.getSelectionModel().cellSelectionEnabledProperty().set(true);
-        // when character or numbers pressed it will start edit in editable
-        // fields
-        employTable.setOnKeyPressed(event -> {
-        if (event.getCode().isLetterKey() || event.getCode().isDigitKey()) {
-            editFocusedCell();
-        } else if (event.getCode() == KeyCode.RIGHT ||
-                event.getCode() == KeyCode.TAB) {
-            employTable.getSelectionModel().selectNext();
-            event.consume();
-        } else if (event.getCode() == KeyCode.LEFT) {
-            // work around due to
-            // TableView.getSelectionModel().selectPrevious() due to a bug
-            // stopping it from working on
-            // the first column in the last row of the table
-            selectPrevious();
-            event.consume();
-        }
-        });
+        EditUtil.onEditProperty(employTable);
     }
 
-    @SuppressWarnings("unchecked")
-    public void editFocusedCell() {
-        final TablePosition< Employee, ? > focusedCell = employTable
-                .focusModelProperty().get().focusedCellProperty().get();
-        employTable.edit(focusedCell.getRow(), focusedCell.getTableColumn());
-    }
-
-    @SuppressWarnings("unchecked")
-    public void selectPrevious() {
-        if (employTable.getSelectionModel().isCellSelectionEnabled()) {
-            // in cell selection mode, we have to wrap around, going from
-            // right-to-left, and then wrapping to the end of the previous line
-            TablePosition < Employee, ? > pos = employTable.getFocusModel()
-                    .getFocusedCell();
-            if (pos.getColumn() - 1 >= 0) {
-                // go to previous row
-                employTable.getSelectionModel().select(pos.getRow(),
-                        getTableColumn(pos.getTableColumn(), -1));
-            } else if (pos.getRow() < employTable.getItems().size()) {
-                // wrap to end of previous row
-                employTable.getSelectionModel().select(pos.getRow() - 1,
-                        employTable.getVisibleLeafColumn(
-                                employTable.getVisibleLeafColumns().size() - 1));
-            }
-        } else {
-            int focusIndex = employTable.getFocusModel().getFocusedIndex();
-            if (focusIndex == -1) {
-                employTable.getSelectionModel().select(employTable.getItems().size() - 1);
-            } else if (focusIndex > 0) {
-                employTable.getSelectionModel().select(focusIndex - 1);
-            }
-        }
-    }
-
-    private TableColumn < Employee, ? > getTableColumn(
-            final TableColumn < Employee, ? > column, int offset) {
-        int columnIndex = employTable.getVisibleLeafIndex(column);
-        int newColumnIndex = columnIndex + offset;
-        return employTable.getVisibleLeafColumn(newColumnIndex);
-    }
 
 
     public void loadData() {
-        name.setCellValueFactory(new PropertyValueFactory<Employee, String>("fullName"));
-        salary.setCellValueFactory(new PropertyValueFactory<Employee, Integer>("salary"));
+        name.setCellValueFactory(new PropertyValueFactory<>("fullName"));
+        salary.setCellValueFactory(new PropertyValueFactory<>("salary"));
         try {
             Connection connection =  establishConnection();
             PreparedStatement ps = connection.prepareStatement("SELECT * FROM employee");
@@ -181,6 +264,31 @@ public class Controller implements Initializable {
         }
     }
 
+    public void loadPropertyData() {
+        address.setCellValueFactory(new PropertyValueFactory<>("address"));
+        maintenance.setCellValueFactory(new PropertyValueFactory<>("maintenance"));
+        try {
+            Connection connection =  establishConnection();
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM property");
+            ResultSet rs = ps.executeQuery();
+
+
+            List<Property> propertyList = new ArrayList<>();
+            while (rs.next()) {
+                Property property = new Property(rs.getString("address"), rs.getInt("maintenance"),
+                        rs.getInt("id"));
+                propertyList.add(property);
+            }
+
+
+            ObservableList<Property> data = FXCollections.observableArrayList(propertyList);
+            propertyTable.setItems(data);
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
     public void updateName(String newName, int id) {
         try {
             Connection connection =  establishConnection();
@@ -191,6 +299,114 @@ public class Controller implements Initializable {
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
+    }
 
+    public void updateSalary(int newSalary, int id) {
+        try {
+            Connection connection =  establishConnection();
+            PreparedStatement ps = connection.prepareStatement("UPDATE employee SET salary = ? WHERE id = ?");
+            ps.setInt(1,newSalary);
+            ps.setInt(2, id);
+            ps.executeUpdate();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
+    public void onAddProperty(ActionEvent actionEvent) {
+        try {
+            Connection connection =  establishConnection();
+            Statement ps = connection.createStatement();
+
+
+            ps.executeUpdate("INSERT INTO property (address, maintenance) VALUES('"
+                    +addressField.getText()+"', '"+ Integer.parseInt(maintenanceField.getText()) +"')");
+
+            loadPropertyData();
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
+    public void onDeleteProperty(ActionEvent actionEvent) {
+        try {
+            Connection connection =  establishConnection();
+            Statement ps = connection.createStatement();
+
+            ps.executeUpdate("DELETE FROM property WHERE id='"
+                    +propertyTable.getSelectionModel().getSelectedItem().getId() +"'");
+
+            loadPropertyData();
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
+    public void onEditProperty(ActionEvent actionEvent) {
+        EditUtil.onEditProperty(propertyTable);
+    }
+
+
+    public void loadClientData() {
+        clientFullName.setCellValueFactory(new PropertyValueFactory<>("clientFullName"));
+        clientType.setCellValueFactory(new PropertyValueFactory<>("clientType"));
+        try {
+            Connection connection =  establishConnection();
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM clients");
+            ResultSet rs = ps.executeQuery();
+
+
+            List<Client> clientList = new ArrayList<>();
+            while (rs.next()) {
+                Client client = new Client(rs.getString("fullname"), rs.getString("type"),
+                        rs.getInt("id"));
+                clientList.add(client);
+            }
+
+
+            ObservableList<Client> data = FXCollections.observableArrayList(clientList);
+            clientTable.setItems(data);
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
+
+    public void onEditClient(ActionEvent actionEvent) {
+        EditUtil.onEditProperty(clientTable);
+    }
+
+    public void onAddClient(ActionEvent actionEvent) {
+        try {
+            Connection connection =  establishConnection();
+            Statement ps = connection.createStatement();
+
+
+            ps.executeUpdate("INSERT INTO clients (fullname, type) VALUES('"
+                    +clientField.getText()+"', '"+ typeDropdown.getSelectionModel().getSelectedItem().toString() +"')");
+
+            loadClientData();
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
+    public void onDeleteClient(ActionEvent actionEvent) {
+        try {
+            Connection connection =  establishConnection();
+            Statement ps = connection.createStatement();
+
+            ps.executeUpdate("DELETE FROM clients WHERE id='"
+                    +clientTable.getSelectionModel().getSelectedItem().getId() +"'");
+
+            loadClientData();
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
     }
 }

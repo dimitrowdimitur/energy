@@ -5,9 +5,9 @@
 
 <TabPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="527.0" prefWidth="968.0" tabClosingPolicy="UNAVAILABLE" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="sample.Controller">
   <tabs>
-    <Tab text="Untitled Tab 1">
+    <Tab text="Employees">
       <content>
-        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="333.9" prefWidth="509.9">
                <children>
                   <TableView fx:id="employTable" layoutX="22.0" layoutY="29.0" prefHeight="333.0" prefWidth="509.0">
                     <columns>
@@ -20,13 +20,47 @@
                   <TextField fx:id="employeeSalary" layoutX="180.0" layoutY="371.0" prefHeight="32.0" prefWidth="86.0" promptText="Salary" />
                   <Button fx:id="editBtn" layoutX="367.0" layoutY="373.0" mnemonicParsing="false" onAction="#onEditEmployee" prefHeight="26.0" prefWidth="82.0" text="Edit" />
                   <Button fx:id="deleteBtn" layoutX="457.0" layoutY="373.0" mnemonicParsing="false" onAction="#onDeleteEmployee" prefHeight="26.0" prefWidth="82.0" text="Delete" />
-               </children></AnchorPane>
+               </children>
+        </AnchorPane>
       </content>
     </Tab>
-    <Tab text="Untitled Tab 2">
+    <Tab text="Properties">
       <content>
-        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" />
+        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="333.9" prefWidth="509.9">
+            <children>
+                <TableView fx:id="propertyTable" layoutX="22.0" layoutY="29.0" prefHeight="333.0" prefWidth="509.0">
+                    <columns>
+                        <TableColumn fx:id="address" prefWidth="293.59999656677246" text="Address" />
+                        <TableColumn fx:id="maintenance" minWidth="5.20001220703125" prefWidth="215.99996948242188" text="Maintenance" />
+                    </columns>
+                </TableView>
+                <Button fx:id="addPropery" layoutX="277.0" layoutY="373.0" mnemonicParsing="false" onAction="#onAddProperty" prefHeight="26.0" prefWidth="82.0" text="Add" />
+                <TextField fx:id="addressField" layoutX="22.0" layoutY="371.0" prefHeight="31.0" prefWidth="149.0" promptText="Address" />
+                <TextField fx:id="maintenanceField" layoutX="180.0" layoutY="371.0" prefHeight="32.0" prefWidth="86.0" promptText="Maintenance" />
+                <Button fx:id="editBtn2" layoutX="367.0" layoutY="373.0" mnemonicParsing="false" onAction="#onEditProperty" prefHeight="26.0" prefWidth="82.0" text="Edit" />
+                <Button fx:id="deletePropertyBtn" layoutX="457.0" layoutY="373.0" mnemonicParsing="false" onAction="#onDeleteProperty" prefHeight="26.0" prefWidth="82.0" text="Delete" />
+            </children>
+        </AnchorPane>
       </content>
     </Tab>
+      <Tab text="Clients">
+          <content>
+              <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="333.9" prefWidth="509.9">
+                  <children>
+                      <TableView fx:id="clientTable" layoutX="22.0" layoutY="29.0" prefHeight="333.0" prefWidth="509.0">
+                          <columns>
+                              <TableColumn fx:id="clientFullName" prefWidth="293.59999656677246" text="Full name" />
+                              <TableColumn fx:id="clientType" minWidth="5.20001220703125" prefWidth="215.99996948242188" text="Type" />
+                          </columns>
+                      </TableView>
+                      <Button fx:id="addClient" layoutX="270.0" layoutY="373.0" mnemonicParsing="false" onAction="#onAddClient" prefHeight="26.0" prefWidth="82.0" text="Add" />
+                      <TextField fx:id="clientField" layoutX="22.0" layoutY="371.0" prefHeight="31.0" prefWidth="149.0" promptText="Full name" />
+                      <Button fx:id="editBtn3" layoutX="365.0" layoutY="373.0" mnemonicParsing="false" onAction="#onEditClient" prefHeight="26.0" prefWidth="82.0" text="Edit" />
+                      <Button fx:id="deleteClientBtn" layoutX="457.0" layoutY="373.0" mnemonicParsing="false" onAction="#onDeleteClient" prefHeight="26.0" prefWidth="82.0" text="Delete" />
+                  <ChoiceBox fx:id="typeDropdown" layoutX="178.0" layoutY="373.0" prefHeight="26.0" prefWidth="78.0" />
+                  </children>
+              </AnchorPane>
+          </content>
+      </Tab>
   </tabs>
 </TabPane>
