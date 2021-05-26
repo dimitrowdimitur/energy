@@ -2,6 +2,7 @@ package sample;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.TableColumn;
@@ -9,10 +10,10 @@ import javafx.scene.control.TablePosition;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.KeyCode;
 import sample.model.Employee;
 
-import java.lang.reflect.Member;
 import java.net.URL;
 import java.sql.*;
 import java.util.ArrayList;
@@ -37,6 +38,18 @@ public class Controller implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         loadData();
+        name.setCellFactory(TextFieldTableCell.<Employee>forTableColumn());
+        name.setOnEditCommit(
+                new EventHandler<TableColumn.CellEditEvent<Employee, String>>() {
+                    @Override
+                    public void handle(TableColumn.CellEditEvent<Employee, String> event) {
+                        ((Employee) event.getTableView().getItems().get(event.getTablePosition().getRow())).setFullName(event.getNewValue());
+                        String newName = event.getNewValue();
+                        int uniqueIdentifier = event.getRowValue().getId(); //Unique identfier is something that uniquely identify the row. It could be the name of the object that we are pricing here.
+                        updateName(newName, uniqueIdentifier); //Call DAO now
+                    }
+                }
+        );
     }
 
     @FXML
@@ -166,5 +179,18 @@ public class Controller implements Initializable {
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
+    }
+
+    public void updateName(String newName, int id) {
+        try {
+            Connection connection =  establishConnection();
+            PreparedStatement ps = connection.prepareStatement("UPDATE employee SET fullname = ? WHERE id = ?");
+            ps.setString(1,newName);
+            ps.setInt(2, id);
+            ps.executeUpdate();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+
     }
 }
