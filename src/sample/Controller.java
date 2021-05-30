@@ -632,6 +632,7 @@ public class Controller implements Initializable {
                     +clientTable.getSelectionModel().getSelectedItem().getId() +"'");
 
             loadClientData();
+            loadClientsBillData();
             clientDropdown.setItems(FXCollections.observableArrayList(getCustomersNamesList()));
 
         } catch (SQLException throwables) {
@@ -706,6 +707,7 @@ public class Controller implements Initializable {
                     +consumptionTable.getSelectionModel().getSelectedItem().getId() +"'");
 
             loadConsumptionData();
+            loadClientsBillData();
 
         } catch (SQLException throwables) {
             throwables.printStackTrace();
